@@ -119,6 +119,8 @@ select.field{cursor:pointer;-webkit-appearance:none;appearance:none;background:#
 .pcard h3{margin:4px 0 0}
 .pcard .hint{margin-top:0}
 .mapname{font-size:20px;font-weight:700;margin-top:-6px}
+.netline{font-size:13px;font-weight:600;margin-top:-4px}
+.ver{position:fixed;right:10px;bottom:6px;font-size:11px;font-weight:600;opacity:.55}
 .logo.small{font-size:32px;margin:2px 0 4px}
 .roomRow{display:flex;gap:10px;justify-content:center;align-items:center}
 #roomCode{font-size:30px;letter-spacing:.2em;font-weight:700;-webkit-user-select:text;user-select:text}
@@ -166,6 +168,7 @@ select.field{cursor:pointer;-webkit-appearance:none;appearance:none;background:#
     <div class="privrow"><button id="privBtn" class="btn ghost">Private match</button></div>
     <div id="mmMsg" class="mm"></div>
   </div>
+  <div id="ver" class="ver"></div>
 </div>
 
 <div id="priv" hidden>
@@ -213,6 +216,7 @@ select.field{cursor:pointer;-webkit-appearance:none;appearance:none;background:#
     <h3 id="roomLabel">Room code</h3>
     <div class="roomRow"><span id="roomCode">...</span><button id="copyBtn" class="btn ghost">Copy</button></div>
     <div id="roomHint" class="hint" style="margin-top:0"></div>
+    <div id="netLine" class="netline"></div>
     <h3>Map</h3>
     <div id="mapName" class="mapname"></div>
     <h3>Weapon</h3>
@@ -260,7 +264,8 @@ const SHELLS = [0xf4e3c8, 0xc98a5a, 0xf8f8f3, 0xff8fb1, 0x8fd6ff, 0xa6e36b, 0xff
 const TEAM_COL = [0xff5a4d, 0x38a3ff], TEAM_CSS = ['#ff8d84', '#7cc3ff'], TEAM_NAME = ['RED', 'BLUE'];
 const EGG = { eye: 1.2, cy: .78, rx: .52, ry: .74 };
 const HW = .4, PH = 1.5, EPS = 1e-4, STEP = .5, GRAV = 22, JUMP = 7.9, SPEED = 6.2, ROCKET_SPEED = 38, BLAST = 5.5;
-const PREFIX = 'scrambled-egg-v3-', LOBBY_PREFIX = 'scrambled-egg-v4-lobby-', TEAM_MAX = 10, MAX_HUMANS = TEAM_MAX * 2, LOBBY_MAX = 30, PUB_LIMIT = 50;
+const GAME_VERSION = 4;   // raise this whenever older copies of the page can no longer play with this one
+const PREFIX = 'scrambled-egg-v3-', LOBBY_PREFIX = 'scrambled-egg-v' + GAME_VERSION + '-lobby-', TEAM_MAX = 10, MAX_HUMANS = TEAM_MAX * 2, LOBBY_MAX = 30, PUB_LIMIT = 50;
 
 const prefs = Object.assign({ name: '', color: 0, hat: 0, weapon: 0, sens: 1, mode: 'ffa', bots: 5, map: -1 },
   (() => { try { return JSON.parse(localStorage.getItem('scrambled-prefs')) || {}; } catch (e) { return {}; } })());
@@ -2313,7 +2318,7 @@ const Net = {
   toHost(m) { if (S.isHost) hostHandle(m, S.myId); else if (this.conn && this.conn.open) this.conn.send(m); },
   broadcast(m, except) { for (const id in this.conns) { if (id !== except && this.conns[id].open) this.conns[id].send(m); } },
   all(m) { this.broadcast(m); clientHandle(m); },
-  close() { this.gen++; const p = this.peer; this.peer = null; this.conn = null; this.conns = {}; if (p) { try { p.destroy(); } catch (e) { /* already gone */ } } },
+  close() { this.gen++; if (MM.probe) { try { MM.probe.destroy(); } catch (e) { /* already gone */ } MM.probe = null; } const p = this.peer; this.peer = null; this.conn = null; this.conns = {}; if (p) { try { p.destroy(); } catch (e) { /* already gone */ } } },
 };
 // run f later unless the connection was torn down or replaced in the meantime
 const later = (f, ms) => { const g = Net.gen; setTimeout(() => { if (Net.gen === g) f(); }, ms); };
@@ -2589,7 +2594,7 @@ function hudFrame(now) {
   cr.style.display = me.alive && !scoped ? '' : 'none';
   cr.style.setProperty('--g', (4 + curSpread(w) * 520).toFixed(1) + 'px');
   fpsN++;
-  if (now - fpsT >= .5) { setText('fps', Math.round(fpsN / (now - fpsT))); fpsN = 0; fpsT = now; setText('ping', S.isHost ? 'host' : S.ping + 'ms'); }
+  if (now - fpsT >= .5) { setText('fps', Math.round(fpsN / (now - fpsT))); fpsN = 0; fpsT = now; setText('ping', S.isHost ? 'host' : S.ping + 'ms'); setText('netLine', netStatus()); }
   if (!me.alive && L.deadAt) setText('deadT', 'Back in ' + Math.max(0, Math.ceil(3 - (now - L.deadAt))) + '...');
 }
 
@@ -2770,6 +2775,10 @@ function roomUI(state) {
   $('roomLabel').textContent = state === 'public' ? 'Public match' : 'Room code';
   $('copyBtn').hidden = state !== 'open' && state !== 'client';
 }
+function netStatus() {
+  if (S.isHost) return !S.online ? 'Offline' : S.lostLobby ? 'Lost touch with the lobby, getting it back...' : 'You are the host';
+  return Net.conn && Net.conn.open ? 'Connected to the host \u00b7 ' + S.ping + ' ms' : 'Reconnecting...';
+}
 function mapUI() { $('mapName').textContent = MAPS[S.map].name; }
 function markWeapon() {
   document.querySelectorAll('.wbtn').forEach(b => b.classList.toggle('on', +b.dataset.i === prefs.weapon));
@@ -2811,20 +2820,33 @@ function showPrivate(on) { $('menu').hidden = on; $('priv').hidden = !on; }
 // Only when the main lobby is full do players spill over into lobby 2, 3 and so on.
 const lobbyId = n => LOBBY_PREFIX + n;
 const lobbyName = n => n === 1 ? 'the main lobby' : 'lobby ' + n;
-const MM = { n: 1, tries: 0, netTries: 0, carry: null, searching: false };
+// More ways through home routers: two STUN servers to find each other, and PeerJS's relay
+// (TURN, over UDP and TCP) for networks that block a direct connection.
+const PEER_OPTS = { config: { sdpSemantics: 'unified-plan', iceServers: [
+  { urls: ['stun:stun.l.google.com:19302', 'stun:stun.cloudflare.com:3478'] },
+  { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478?transport=tcp'], username: 'peerjs', credential: 'peerjsp' },
+] } };
+const newPeer = id => (id ? new window.Peer(id, PEER_OPTS) : new window.Peer(PEER_OPTS));
+const MM = { n: 1, tries: 0, netTries: 0, carry: null, searching: false, why: '', probe: null };
 const mmStatus = t => { $('mmMsg').textContent = t; };
-function mmIdle() { MM.searching = false; MM.carry = null; $('playBtn').textContent = '▶ PLAY'; mmStatus(''); }
+function mmIdle() { MM.searching = false; MM.carry = null; $('playBtn').textContent = '\u25B6 PLAY'; mmStatus(''); }
 function quickMatch(n, carry) {
   audioInit(); Net.close();
-  Object.assign(MM, { n, tries: 0, netTries: 0, carry });
+  Object.assign(MM, { n, tries: 0, netTries: 0, carry, why: '' });
   if (!window.Peer) { playOffline(); return; }
-  if (S.screen === 'menu') { MM.searching = true; $('playBtn').textContent = '✕ CANCEL'; }
+  if (S.screen === 'menu') { MM.searching = true; $('playBtn').textContent = '\u2715 CANCEL'; }
   claimLobby();
+}
+function hostPeer(peer) {   // this browser now answers for a lobby
+  Net.peer = peer;
+  peer.on('connection', conn => { if (Net.peer === peer) onHostConn(conn); });
+  peer.on('disconnected', () => { setTimeout(() => { if (Net.peer === peer && !peer.destroyed) { try { peer.reconnect(); } catch (e) { /* retried on the next drop */ } } }, 3000); });
+  peer.on('error', err => { if (Net.peer === peer && err && err.type === 'unavailable-id') S.lostLobby = true; });   // someone took the lobby over while we were cut off
 }
 function claimLobby(msg) {   // try to become lobby n's host; if somebody already is, join them instead
   const n = MM.n; let peer, hosting = false;
   mmStatus(msg || 'Connecting to ' + lobbyName(n) + '...');
-  try { peer = new window.Peer(lobbyId(n)); } catch (e) { playOffline(); return; }
+  try { peer = newPeer(lobbyId(n)); } catch (e) { playOffline(); return; }
   Net.peer = peer;
   const unreachable = () => {   // the matchmaking service did not answer: try a couple more times before playing offline
     clearTimeout(timer); if (Net.peer !== peer) return;
@@ -2832,48 +2854,94 @@ function claimLobby(msg) {   // try to become lobby n's host; if somebody alread
     if (++MM.netTries < 3) later(() => claimLobby('Still connecting to ' + lobbyName(n) + '...'), 1500 * MM.netTries); else playOffline();
   };
   const timer = setTimeout(() => { if (!hosting) unreachable(); }, 12000);
-  peer.on('open', () => { if (Net.peer !== peer) return; clearTimeout(timer); hosting = true; hostLobby(n); });
-  peer.on('connection', conn => { if (Net.peer === peer && hosting) onHostConn(conn); });
-  peer.on('disconnected', () => { setTimeout(() => { if (Net.peer === peer && hosting && !peer.destroyed) { try { peer.reconnect(); } catch (e) { /* retried on the next drop */ } } }, 3000); });
+  peer.on('open', () => { if (Net.peer !== peer) return; clearTimeout(timer); hosting = true; hostPeer(peer); hostLobby(n); });
   peer.on('error', err => {
     if (Net.peer !== peer || hosting) return;
     if (err && err.type === 'unavailable-id') { clearTimeout(timer); Net.peer = null; try { peer.destroy(); } catch (e) { /* already gone */ } joinLobby(n); }
     else unreachable();
   });
 }
-function joinLobby(n) {
-  let peer, joined = false;
-  try { peer = new window.Peer(); } catch (e) { playOffline(); return; }
-  Net.peer = peer;
-  const retry = full => { clearTimeout(timer); if (Net.peer !== peer || joined) return; Net.close(); nextLobby(full); };
-  const timer = setTimeout(() => retry(false), 15000);
+// Connect to lobby n's host as a player and return the peer, so the caller can cancel it.
+// on.welcome(m, peer, conn) runs when the host lets us in, on.fail(full) when it did not work out.
+function dialLobby(n, on) {
+  let peer, joined = false, over = false;
+  try { peer = newPeer(); } catch (e) { return null; }
+  const fail = full => { if (over || joined) return; over = true; clearTimeout(timer); try { peer.destroy(); } catch (e) { /* already gone */ } on.fail(full); };
+  const timer = setTimeout(() => fail(false), 15000);
   peer.on('open', () => {
-    if (Net.peer !== peer) return;
-    const conn = Net.conn = peer.connect(lobbyId(n), { reliable: true, serialization: 'json' });
+    if (over) return;
+    const conn = peer.connect(lobbyId(n), { reliable: true, serialization: 'json' });
     conn.on('open', () => conn.send(helloMsg()));
     conn.on('data', m => {
-      if (Net.peer !== peer || !m || typeof m !== 'object') return;
-      if (m.t === 'welcome') { clearTimeout(timer); joined = true; joinedGame(m, { pub: n }); }
-      else if (m.t === 'full') retry(true);
-      else if (joined) clientHandle(m);
+      if (over || !m || typeof m !== 'object') return;
+      if (joined) { if (Net.peer === peer) clientHandle(m); }
+      else if (m.t === 'welcome') { joined = true; clearTimeout(timer); on.welcome(m, peer, conn); }
+      else if (m.t === 'full') fail(true);
     });
-    const lost = () => { if (Net.peer !== peer) return; if (joined) hostLost(n); else retry(false); };
+    const lost = () => { if (!joined) fail(false); else if (Net.peer === peer) hostLost(n); };
     conn.on('close', lost);
     conn.on('error', () => { if (!conn.open) lost(); });
   });
-  peer.on('error', () => { if (!joined) retry(false); });   // e.g. the host vanished just before we got there
+  peer.on('error', () => fail(false));   // e.g. the host vanished just before we got there
+  return peer;
+}
+function joinLobby(n) {
+  const peer = dialLobby(n, {
+    welcome: (m, p, conn) => { if (Net.peer !== p) { try { p.destroy(); } catch (e) { /* already gone */ } return; } Net.conn = conn; joinedGame(m, { pub: n }); },
+    fail: full => { if (Net.peer !== peer) return; Net.close(); nextLobby(full); },
+  });
+  if (peer) Net.peer = peer; else playOffline();
 }
 function nextLobby(full) {
   // a hiccup is no reason to split players up, so retry the same lobby a few times first (its host may just have left)
   if (!full && ++MM.tries < 4) { later(() => claimLobby(), 300 + Math.random() * 900); return; }
-  MM.tries = 0;
+  MM.tries = 0; MM.why = full ? 'full' : 'unreachable';
   if (++MM.n > LOBBY_MAX) { playOffline(); return; }
   claimLobby(full ? (MM.n === 2 ? 'The main lobby' : 'Lobby ' + (MM.n - 1)) + ' is full, joining ' + lobbyName(MM.n) + '...' : '');
 }
+// Somebody left on their own outside the main lobby (it was full a moment ago, its host could
+// not be reached, or the matchmaking service was down) keeps trying to get in, so two players
+// who pressed Play at the same time still end up in the same match.
+function healTick() {
+  if (MM.probe || !window.Peer || S.screen !== 'game' || !S.isHost || !S.publicMatch || (S.pub === 1 && !S.lostLobby) || humanCount() > 1) return;
+  const g = Net.gen;
+  let claim;
+  try { claim = MM.probe = newPeer(lobbyId(1)); } catch (e) { return; }
+  const drop = () => { if (MM.probe === claim) MM.probe = null; try { claim.destroy(); } catch (e) { /* already gone */ } };
+  const timer = setTimeout(drop, 12000);
+  claim.on('open', () => {   // the main lobby was empty: this match becomes it
+    clearTimeout(timer);
+    if (MM.probe !== claim) return;
+    MM.probe = null;
+    if (Net.gen !== g || humanCount() > 1) { try { claim.destroy(); } catch (e) { /* already gone */ } return; }
+    const old = Net.peer; Net.peer = null; if (old) { try { old.destroy(); } catch (e) { /* already gone */ } }
+    hostPeer(claim);
+    Object.assign(S, { pub: 1, online: true, lostLobby: false }); roomUI('public');
+    chatLine(null, 'You are now hosting the main lobby.');
+  });
+  claim.on('error', err => {
+    if (MM.probe !== claim) return;
+    clearTimeout(timer); drop();
+    if (!err || err.type !== 'unavailable-id' || Net.gen !== g) return;
+    const p = MM.probe = dialLobby(1, {   // somebody is hosting the main lobby: go and join them
+      welcome: (m, peer, conn) => {
+        if (MM.probe !== peer) { try { peer.destroy(); } catch (e) { /* already gone */ } return; }
+        MM.probe = null;
+        if (Net.gen !== g || humanCount() > 1) { try { peer.destroy(); } catch (e) { /* already gone */ } return; }
+        Net.close(); Net.peer = peer; Net.conn = conn;
+        joinedGame(m, { pub: 1 });
+        chatLine(null, 'Moved you into the main lobby.');
+      },
+      fail: () => { if (MM.probe === p) MM.probe = null; },
+    });
+  });
+}
+setInterval(healTick, 20000);
 function hostLobby(n) {
-  startHost({ mode: 'teams', slots: MAX_HUMANS, limit: PUB_LIMIT, pub: n, carry: MM.carry });
+  startHost({ mode: 'teams', slots: MAX_HUMANS, limit: PUB_LIMIT, pub: n, carry: MM.carry, publicMatch: true });
   S.online = true; roomUI('public');
   if (MM.carry) chatLine(null, 'You are now hosting ' + lobbyName(n) + '.');
+  else if (n > 1 && MM.why === 'unreachable') chatLine(null, "Couldn't connect to the main lobby's host, so you are in lobby " + n + ' for now. You will be moved in as soon as it works.');
   mmIdle();
 }
 function hostLost(n) {   // our host left: keep your team and score and help pick a new host
@@ -2885,15 +2953,15 @@ function hostLost(n) {   // our host left: keep your team and score and help pic
 function playOffline() {   // no matchmaking service to be found: a local 10 v 10 against bots
   const carry = MM.carry;
   Net.close();
-  startHost({ mode: 'teams', slots: MAX_HUMANS, limit: PUB_LIMIT, carry });
+  startHost({ mode: 'teams', slots: MAX_HUMANS, limit: PUB_LIMIT, carry, publicMatch: true });
   roomUI('offline'); mmIdle();
-  chatLine(null, 'Could not connect to the main lobby, so this is an offline match. Quit and press Play to try again.');
+  chatLine(null, 'Could not reach the online service, so you are playing offline for now. You will be moved into the main lobby as soon as it is back.');
 }
 function startHost(o) {
   audioInit();
   const teams = o.mode === 'teams', c = o.carry || {};
   const map = c.map >= 0 && c.map < MAPS.length ? c.map : o.map >= 0 && o.map < MAPS.length ? o.map : randomMap();   // a new host keeps the map in play
-  Object.assign(S, { isHost: true, myId: 'h', mode: o.mode, limit: o.limit, teamScore: Array.isArray(c.ts) ? [c.ts[0] | 0, c.ts[1] | 0] : [0, 0], nextId: 0, slots: o.slots, pub: o.pub || 0, map, rotate: o.rotate !== false });
+  Object.assign(S, { isHost: true, myId: 'h', mode: o.mode, limit: o.limit, teamScore: Array.isArray(c.ts) ? [c.ts[0] | 0, c.ts[1] | 0] : [0, 0], nextId: 0, slots: o.slots, pub: o.pub || 0, map, rotate: o.rotate !== false, publicMatch: !!o.publicMatch, lostLobby: false });
   loadMap(map); enterGame(); mapUI(); banner(MAPS[map].name);
   addPlayer({ id: 'h', name: prefs.name, color: prefs.color, team: teams ? (c.team === 0 || c.team === 1 ? c.team : (Math.random() * 2) | 0) : -1, weapon: prefs.weapon, hat: prefs.hat, kills: c.kills, deaths: c.deaths });
   while (Object.keys(S.players).length < S.slots) hostAddBot(teams ? smallerTeam() : -1);
@@ -2907,7 +2975,7 @@ function startPrivate() {
   openRoom();
 }
 function joinedGame(m, info) {
-  Object.assign(S, { isHost: false, myId: String(m.id), mode: m.mode === 'teams' ? 'teams' : 'ffa', limit: clamp(m.limit | 0, 1, 999), teamScore: [0, 0], code: info.code || '', pub: info.pub || 0, map: clamp(m.map | 0, 0, MAPS.length - 1) });
+  Object.assign(S, { isHost: false, myId: String(m.id), mode: m.mode === 'teams' ? 'teams' : 'ffa', limit: clamp(m.limit | 0, 1, 999), teamScore: [0, 0], code: info.code || '', pub: info.pub || 0, map: clamp(m.map | 0, 0, MAPS.length - 1), publicMatch: !!info.pub, lostLobby: false });
   loadMap(S.map); enterGame(); roomUI(S.pub ? 'public' : 'client'); mapUI(); banner(MAPS[S.map].name);
   mmIdle();
   if (!S.locked) lockPointer();
@@ -2958,7 +3026,7 @@ function lanHint() {   // tell the host which address friends on the same networ
 function openPeerRoom() {
   if (!window.Peer) { roomUI('offline'); return; }
   let peer;
-  try { peer = new window.Peer(PREFIX + S.code); } catch (e) { roomUI('offline'); return; }
+  try { peer = newPeer(PREFIX + S.code); } catch (e) { roomUI('offline'); return; }
   Net.peer = peer;
   peer.on('open', () => { if (Net.peer === peer) { S.online = true; roomUI('open'); } });
   peer.on('connection', conn => { if (Net.peer === peer) onHostConn(conn); });
@@ -3013,7 +3081,7 @@ function joinPeer(code, relayMissed) {
   const none = 'No room with that code.';
   if (!window.Peer) { joinMsg(relayMissed ? none : 'The multiplayer library did not load. Check your connection and reload.'); return; }
   let peer;
-  try { peer = new window.Peer(); } catch (e) { joinMsg('Could not start a connection.'); return; }
+  try { peer = newPeer(); } catch (e) { joinMsg('Could not start a connection.'); return; }
   Net.peer = peer;
   const fail = msg => { clearTimeout(timer); joinFail(peer, msg); };
   const timer = setTimeout(() => { if (S.screen !== 'game') fail(relayMissed ? none : 'Could not reach that room.'); }, 15000);
@@ -3129,6 +3197,22 @@ $('sens').value = prefs.sens;
 $('sens').addEventListener('input', e => { prefs.sens = clamp(+e.target.value || 1, .3, 3); savePrefs(); });
 if (location.hash.length > 1) { $('codeIn').value = location.hash.slice(1, 7).toUpperCase(); showPrivate(true); }   // an invite link opens straight to the private screen
 markWeapon(); markMode(); setBots(prefs.bots);
+$('ver').textContent = 'version ' + GAME_VERSION;
+// GitHub Pages lets browsers keep a copy of the page for a while after an update, and an old copy
+// looks for lobbies nobody else is in. So check the live page now and then, and switch to it
+// (from the menu, never mid-match) when it is a newer version.
+function checkForUpdate() {
+  if (!/^https?:$/.test(location.protocol) || S.screen !== 'menu' || MM.searching) return;
+  fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => (r.ok ? r.text() : '')).then(t => {
+    const m = /const GAME_VERSION = (\d+);/.exec(t), v = m ? +m[1] : 0;
+    let tried = ''; try { tried = sessionStorage.getItem('scrambled-update') || ''; } catch (e) { /* storage blocked */ }
+    if (v > GAME_VERSION && tried !== String(v) && S.screen === 'menu' && !MM.searching) {
+      try { sessionStorage.setItem('scrambled-update', String(v)); } catch (e) { /* storage blocked */ }
+      location.replace(location.pathname + '?v=' + v + location.hash);
+    }
+  }).catch(() => { /* offline: keep the copy we have */ });
+}
+checkForUpdate(); setInterval(checkForUpdate, 120000);
 
 // ---------- main loop
 const tmp = new V3();
@@ -3220,7 +3304,7 @@ requestAnimationFrame(frame);
   } catch (e) { setInterval(hostTick, 50); }
 })();
 window.addEventListener('beforeunload', () => Net.close());
-window.SCR = { S, L, MM, phys, Net, keys, startHost, startPrivate, quickMatch, joinRoom, hostTick, updateGame, rockets, decals, MAPS, loadMap, boxes, NAV, SPAWNS, astar, navCell, camera, renderer, rayMap };   // handy from the dev console
+window.SCR = { S, L, MM, phys, Net, keys, startHost, startPrivate, quickMatch, healTick, joinRoom, hostTick, updateGame, rockets, decals, MAPS, loadMap, boxes, NAV, SPAWNS, astar, navCell, camera, renderer, rayMap };   // handy from the dev console
 })();
 </script>
 </body>
