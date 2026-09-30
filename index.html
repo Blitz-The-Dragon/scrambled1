@@ -52,8 +52,9 @@ h3{margin:0 0 8px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;c
 .seg button.on{background:var(--ink);color:#fff}
 .seg span{padding:9px 4px 9px 12px;font-weight:600}
 .seg b{padding:9px 6px;min-width:26px;text-align:center}
-.mm{font-weight:600;margin-top:12px}
-.prow{display:flex;gap:8px;align-items:center;margin-top:10px}
+.mm{font-weight:600;margin-top:10px;min-height:1.3em}
+.privrow{margin-top:14px}
+.prow{display:flex;gap:8px;align-items:center}
 .prow .seg{box-shadow:0 3px 0 var(--ink)}
 .prow .seg button{padding:6px 10px}.prow .seg span{padding:6px 2px 6px 10px}.prow .seg b{padding:6px 4px}
 .prow .btn{flex:1}
@@ -113,9 +114,11 @@ h3{margin:0 0 8px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;c
 #dead{position:absolute;inset:0;display:grid;place-content:center;text-align:center;background:rgba(20,38,63,.38);font-size:20px}
 #dead .logo{margin-bottom:14px}
 #banner{position:absolute;left:50%;top:17%;transform:translateX(-50%);background:var(--yolk);color:var(--ink);border:3px solid var(--ink);border-radius:16px;padding:9px 26px;font-size:25px;font-weight:700;text-shadow:none;box-shadow:0 5px 0 var(--ink);white-space:nowrap}
-#pause{position:fixed;inset:0;display:grid;place-items:center;background:rgba(20,38,63,.5);padding:16px;overflow:auto}
+#pause,#priv{position:fixed;inset:0;display:grid;place-items:center;background:rgba(20,38,63,.5);padding:16px;overflow:auto}
 .pcard{width:min(440px,100%);display:grid;gap:12px;text-align:center}
 .pcard h3{margin:4px 0 0}
+.pcard .hint{margin-top:0}
+.logo.small{font-size:32px;margin:2px 0 4px}
 .roomRow{display:flex;gap:10px;justify-content:center;align-items:center}
 #roomCode{font-size:30px;letter-spacing:.2em;font-weight:700;-webkit-user-select:text;user-select:text}
 .sens{display:flex;gap:10px;align-items:center;justify-content:center;font-weight:600;font-size:14px}
@@ -142,20 +145,6 @@ h3{margin:0 0 8px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;c
   </div>
   <div class="right">
     <div class="card">
-      <h3>Private room</h3>
-      <div class="prow"><div class="seg" id="modeSeg"><button data-m="ffa">Free-for-all</button><button data-m="teams">Teams</button></div></div>
-      <div class="prow">
-        <div class="seg"><span>Bots</span><button id="botMinus" aria-label="Fewer bots">&minus;</button><b id="botN">5</b><button id="botPlus" aria-label="More bots">+</button></div>
-        <button id="createBtn" class="btn">CREATE</button>
-      </div>
-      <h3 style="margin-top:14px">Join a friend</h3>
-      <div class="joinrow">
-        <input id="codeIn" class="field" maxlength="6" placeholder="CODE" spellcheck="false" aria-label="Room code">
-        <button id="joinBtn" class="btn">JOIN</button>
-      </div>
-      <div id="joinMsg" class="hint">The room code is in the host's pause menu (Esc).</div>
-    </div>
-    <div class="card">
       <h3>Controls</h3>
       <ul class="keys">
         <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>move</li>
@@ -173,7 +162,28 @@ h3{margin:0 0 8px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;c
     <div class="playrow">
       <button id="playBtn" class="btn big">&#9654; PLAY</button>
     </div>
-    <div id="mmMsg" class="mm">Online 10 v 10. Bots fill any empty seats.</div>
+    <div class="privrow"><button id="privBtn" class="btn ghost">Private match</button></div>
+    <div id="mmMsg" class="mm"></div>
+  </div>
+</div>
+
+<div id="priv" hidden>
+  <div class="card pcard">
+    <div class="logo small">PRIVATE MATCH</div>
+    <h3>Create a room</h3>
+    <div class="prow"><div class="seg" id="modeSeg"><button data-m="ffa">Free-for-all</button><button data-m="teams">Teams</button></div></div>
+    <div class="prow">
+      <div class="seg"><span>Bots</span><button id="botMinus" aria-label="Fewer bots">&minus;</button><b id="botN">5</b><button id="botPlus" aria-label="More bots">+</button></div>
+      <button id="createBtn" class="btn">CREATE</button>
+    </div>
+    <div class="hint">Your room gets a code. Find it in the pause menu (Esc) and send it to friends.</div>
+    <h3>Join a room</h3>
+    <div class="joinrow">
+      <input id="codeIn" class="field" maxlength="6" placeholder="CODE" spellcheck="false" aria-label="Room code">
+      <button id="joinBtn" class="btn">JOIN</button>
+    </div>
+    <div id="joinMsg" class="hint">Type the code a friend gave you.</div>
+    <div><button id="backBtn" class="btn ghost">Back</button></div>
   </div>
 </div>
 
@@ -1730,8 +1740,11 @@ function roomUI(state) {
   }
   else if (state === 'connecting') { code.textContent = '...'; hint.textContent = 'Opening your room...'; }
   else if (state === 'client') { code.textContent = S.code; hint.textContent = "You are in a friend's room."; }
-  else if (state === 'public') { code.textContent = 'LOBBY ' + S.pub; hint.textContent = 'Public 10 v 10 match. Bots hold the empty seats and hand them over when real players join. Friends who press Play land here while there is room.'; }
-  else { code.textContent = 'offline'; hint.textContent = 'Could not reach the matchmaking service, so nobody else can join right now. Bots still work.'; }
+  else if (state === 'public') {
+    code.textContent = S.pub === 1 ? 'MAIN LOBBY' : 'LOBBY ' + S.pub;
+    hint.textContent = S.pub === 1 ? 'Everyone who presses Play joins this lobby, up to 10 players a team.' : 'The main lobby was full, so you are in an overflow lobby.';
+  }
+  else { code.textContent = 'offline'; hint.textContent = 'Could not reach the matchmaking service, so nobody else can join right now.'; }
   $('roomLabel').textContent = state === 'public' ? 'Public match' : 'Room code';
   $('copyBtn').hidden = state !== 'open' && state !== 'client';
 }
@@ -1750,7 +1763,7 @@ function enterGame() {
   S.screen = 'game'; S.ping = 0; S.resetAt = 0; S.lastTick = nowS(); S.chatOpen = false;
   Object.assign(L, { yaw: 0, pitch: 0, recoil: 0, aim: 0, reloadUntil: 0, equipUntil: 0, nextShot: 0, bloom: 0, vmKick: 0, deadAt: 0, firing: false, aiming: false });
   for (const k in keys) keys[k] = false;
-  $('menu').hidden = true; $('hud').hidden = false; $('pause').hidden = S.locked; $('dead').hidden = true; $('banner').hidden = true;
+  $('menu').hidden = $('priv').hidden = true; $('hud').hidden = false; $('pause').hidden = S.locked; $('dead').hidden = true; $('banner').hidden = true;
   $('feed').textContent = ''; $('chatLog').textContent = ''; $('board').textContent = '';
   vmSetWeapon(prefs.weapon); vmCuff.color.setHex(SHOES[prefs.color]); resetAmmo(); markWeapon();
   camera.fov = 78; camera.updateProjectionMatrix(); camera.position.set(0, 18, 34); camera.lookAt(0, 0, 0);
@@ -1760,45 +1773,52 @@ function toMenu(msg) {
   for (const id in S.players) removePlayer(id);
   clearFx();
   S.screen = 'menu'; S.isHost = false; S.myId = null; S.online = false; S.chatOpen = false; S.pub = 0;
-  $('menu').hidden = false; $('hud').hidden = true; $('pause').hidden = true;
+  $('hud').hidden = true; $('pause').hidden = true;
+  showPrivate(!!msg);   // a private room that went wrong comes back to the private screen with the reason
   if (document.pointerLockElement) document.exitPointerLock();
   joinMsg(msg || JOIN_HELP);
 }
+function showPrivate(on) { $('menu').hidden = on; $('priv').hidden = !on; }
 
-// ---------- public lobbies: PLAY puts you in the first 10 v 10 lobby with a free seat
+// ---------- public lobbies: PLAY always heads for the main lobby (lobby 1)
 // GitHub Pages only serves files, so there is no game server. Every lobby has a fixed
 // PeerJS id and whoever claims it first hosts the match in their own browser; everyone
 // after that connects to them. If the host leaves, the others race to claim the id again,
 // so the lobby carries on under a new host and everyone keeps their team and score.
+// Only when the main lobby is full do players spill over into lobby 2, 3 and so on.
 const lobbyId = n => LOBBY_PREFIX + n;
-const MM_HELP = $('mmMsg').textContent;
-const MM = { n: 1, tries: 0, carry: null, searching: false };
+const lobbyName = n => n === 1 ? 'the main lobby' : 'lobby ' + n;
+const MM = { n: 1, tries: 0, netTries: 0, carry: null, searching: false };
 const mmStatus = t => { $('mmMsg').textContent = t; };
-function mmIdle() { MM.searching = false; MM.carry = null; $('playBtn').textContent = '▶ PLAY'; mmStatus(MM_HELP); }
+function mmIdle() { MM.searching = false; MM.carry = null; $('playBtn').textContent = '▶ PLAY'; mmStatus(''); }
 function quickMatch(n, carry) {
   audioInit(); Net.close();
-  Object.assign(MM, { n, tries: 0, carry });
+  Object.assign(MM, { n, tries: 0, netTries: 0, carry });
   if (!window.Peer) { playOffline(); return; }
   if (S.screen === 'menu') { MM.searching = true; $('playBtn').textContent = '✕ CANCEL'; }
   claimLobby();
 }
-function claimLobby() {   // try to become lobby n's host; if somebody already is, join them instead
+function claimLobby(msg) {   // try to become lobby n's host; if somebody already is, join them instead
   const n = MM.n; let peer, hosting = false;
-  mmStatus('Looking for a match...');
+  mmStatus(msg || 'Connecting to ' + lobbyName(n) + '...');
   try { peer = new window.Peer(lobbyId(n)); } catch (e) { playOffline(); return; }
   Net.peer = peer;
-  const timer = setTimeout(() => { if (Net.peer === peer && !hosting) playOffline(); }, 12000);
+  const unreachable = () => {   // the matchmaking service did not answer: try a couple more times before playing offline
+    clearTimeout(timer); if (Net.peer !== peer) return;
+    Net.close();
+    if (++MM.netTries < 3) later(() => claimLobby('Still connecting to ' + lobbyName(n) + '...'), 1500 * MM.netTries); else playOffline();
+  };
+  const timer = setTimeout(() => { if (!hosting) unreachable(); }, 12000);
   peer.on('open', () => { if (Net.peer !== peer) return; clearTimeout(timer); hosting = true; hostLobby(n); });
   peer.on('connection', conn => { if (Net.peer === peer && hosting) onHostConn(conn); });
   peer.on('disconnected', () => { setTimeout(() => { if (Net.peer === peer && hosting && !peer.destroyed) { try { peer.reconnect(); } catch (e) { /* retried on the next drop */ } } }, 3000); });
   peer.on('error', err => {
     if (Net.peer !== peer || hosting) return;
-    clearTimeout(timer); Net.peer = null; try { peer.destroy(); } catch (e) { /* already gone */ }
-    if (err && err.type === 'unavailable-id') joinLobby(n); else playOffline();
+    if (err && err.type === 'unavailable-id') { clearTimeout(timer); Net.peer = null; try { peer.destroy(); } catch (e) { /* already gone */ } joinLobby(n); }
+    else unreachable();
   });
 }
 function joinLobby(n) {
-  mmStatus('Joining lobby ' + n + '...');
   let peer, joined = false;
   try { peer = new window.Peer(); } catch (e) { playOffline(); return; }
   Net.peer = peer;
@@ -1821,14 +1841,16 @@ function joinLobby(n) {
   peer.on('error', () => { if (!joined) retry(false); });   // e.g. the host vanished just before we got there
 }
 function nextLobby(full) {
-  if (!full && ++MM.tries < 3) { later(claimLobby, 300 + Math.random() * 900); return; }   // its host may have just left: try to take over
+  // a hiccup is no reason to split players up, so retry the same lobby a few times first (its host may just have left)
+  if (!full && ++MM.tries < 4) { later(() => claimLobby(), 300 + Math.random() * 900); return; }
   MM.tries = 0;
-  if (++MM.n > LOBBY_MAX) playOffline(); else claimLobby();
+  if (++MM.n > LOBBY_MAX) { playOffline(); return; }
+  claimLobby(full ? (MM.n === 2 ? 'The main lobby' : 'Lobby ' + (MM.n - 1)) + ' is full, joining ' + lobbyName(MM.n) + '...' : '');
 }
 function hostLobby(n) {
   startHost({ mode: 'teams', slots: MAX_HUMANS, limit: PUB_LIMIT, pub: n, carry: MM.carry });
   S.online = true; roomUI('public');
-  if (MM.carry) chatLine(null, 'You are now hosting lobby ' + n + '.');
+  if (MM.carry) chatLine(null, 'You are now hosting ' + lobbyName(n) + '.');
   mmIdle();
 }
 function hostLost(n) {   // our host left: keep your team and score and help pick a new host
@@ -1842,7 +1864,7 @@ function playOffline() {   // no matchmaking service to be found: a local 10 v 1
   Net.close();
   startHost({ mode: 'teams', slots: MAX_HUMANS, limit: PUB_LIMIT, carry });
   roomUI('offline'); mmIdle();
-  chatLine(null, 'Could not reach the online service, so this match is just you and bots.');
+  chatLine(null, 'Could not connect to the main lobby, so this is an offline match. Quit and press Play to try again.');
 }
 function startHost(o) {
   audioInit();
@@ -2060,6 +2082,10 @@ $('playBtn').addEventListener('click', () => {
   prefs.name = cleanName($('nameIn').value); savePrefs();
   if (MM.searching) { Net.close(); mmIdle(); } else quickMatch(1, null);
 });
+$('privBtn').addEventListener('click', () => { if (MM.searching) { Net.close(); mmIdle(); } showPrivate(true); });
+const privBack = () => { Net.close(); joinMsg(JOIN_HELP); showPrivate(false); };   // also calls off a join still connecting
+$('backBtn').addEventListener('click', privBack);
+window.addEventListener('keydown', e => { if (e.code === 'Escape' && S.screen === 'menu' && !$('priv').hidden) privBack(); });
 $('createBtn').addEventListener('click', () => { prefs.name = cleanName($('nameIn').value); savePrefs(); startPrivate(); });
 $('joinBtn').addEventListener('click', () => { prefs.name = cleanName($('nameIn').value); savePrefs(); joinRoom($('codeIn').value); });
 $('codeIn').addEventListener('keydown', e => { if (e.code === 'Enter') $('joinBtn').click(); });
@@ -2071,7 +2097,7 @@ $('copyBtn').addEventListener('click', () => {
 });
 $('sens').value = prefs.sens;
 $('sens').addEventListener('input', e => { prefs.sens = clamp(+e.target.value || 1, .3, 3); savePrefs(); });
-if (location.hash.length > 1) $('codeIn').value = location.hash.slice(1, 7).toUpperCase();
+if (location.hash.length > 1) { $('codeIn').value = location.hash.slice(1, 7).toUpperCase(); showPrivate(true); }   // an invite link opens straight to the private screen
 markWeapon(); markMode(); setBots(prefs.bots);
 
 // ---------- main loop
