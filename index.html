@@ -52,11 +52,17 @@ h3{margin:0 0 8px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;c
 .seg button.on{background:var(--ink);color:#fff}
 .seg span{padding:9px 4px 9px 12px;font-weight:600}
 .seg b{padding:9px 6px;min-width:26px;text-align:center}
+.mm{font-weight:600;margin-top:12px}
+.prow{display:flex;gap:8px;align-items:center;margin-top:10px}
+.prow .seg{box-shadow:0 3px 0 var(--ink)}
+.prow .seg button{padding:6px 10px}.prow .seg span{padding:6px 2px 6px 10px}.prow .seg b{padding:6px 4px}
+.prow .btn{flex:1}
+#modeSeg{flex:1}#modeSeg button{flex:1}
 .joinrow{display:flex;gap:8px}
 .joinrow .field{text-transform:uppercase;letter-spacing:.18em}
 .keys{margin:0;padding:0;list-style:none;font-size:14px;display:grid;gap:5px}
 .keys kbd{display:inline-block;min-width:24px;text-align:center;background:var(--ink);color:#fff;border-radius:6px;padding:0 6px;font:inherit;font-size:12px;font-weight:600;margin-right:5px}
-@media (max-width:940px){
+@media (max-width:1020px){
   #menu{display:flex;flex-direction:column}
   .dock{order:2;margin-top:36vh;align-self:center;position:static;transform:none}.left{order:3}.right{order:4}
 }
@@ -67,6 +73,8 @@ h3{margin:0 0 8px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;c
 #board .row span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #board .t0{background:rgba(255,90,77,.6)}#board .t1{background:rgba(56,163,255,.6)}
 #board .me{outline:2px solid #fff}
+#board.many{gap:2px;font-size:12px}#board.many .row{padding:0 8px}
+#board .row i{font-style:normal;font-size:.72em;opacity:.7;margin-left:5px;letter-spacing:.06em}
 #top{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:rgba(20,38,63,.45);border-radius:12px;padding:5px 16px;font-size:16px;white-space:nowrap}
 #top .t0{color:#ff8d84}#top .t1{color:#7cc3ff}#top small{opacity:.8;font-size:12px;margin:0 10px}
 #stats{position:absolute;right:14px;top:14px;font-size:12px;background:rgba(20,38,63,.45);border-radius:10px;padding:5px 10px;display:grid;gap:1px;text-align:right}
@@ -134,12 +142,18 @@ h3{margin:0 0 8px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;c
   </div>
   <div class="right">
     <div class="card">
-      <h3>Join a friend</h3>
+      <h3>Private room</h3>
+      <div class="prow"><div class="seg" id="modeSeg"><button data-m="ffa">Free-for-all</button><button data-m="teams">Teams</button></div></div>
+      <div class="prow">
+        <div class="seg"><span>Bots</span><button id="botMinus" aria-label="Fewer bots">&minus;</button><b id="botN">5</b><button id="botPlus" aria-label="More bots">+</button></div>
+        <button id="createBtn" class="btn">CREATE</button>
+      </div>
+      <h3 style="margin-top:14px">Join a friend</h3>
       <div class="joinrow">
         <input id="codeIn" class="field" maxlength="6" placeholder="CODE" spellcheck="false" aria-label="Room code">
         <button id="joinBtn" class="btn">JOIN</button>
       </div>
-      <div id="joinMsg" class="hint">Press Play to open your own room. Your room code is in the pause menu (Esc). Friends open this same page and type it here.</div>
+      <div id="joinMsg" class="hint">The room code is in the host's pause menu (Esc).</div>
     </div>
     <div class="card">
       <h3>Controls</h3>
@@ -157,10 +171,9 @@ h3{margin:0 0 8px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;c
     <div id="wdesc" class="wdesc"></div>
     <div id="wpnRow" class="wrow"></div>
     <div class="playrow">
-      <div class="seg" id="modeSeg"><button data-m="ffa">Free-for-all</button><button data-m="teams">Teams</button></div>
       <button id="playBtn" class="btn big">&#9654; PLAY</button>
-      <div class="seg"><span>Bots</span><button id="botMinus" aria-label="Fewer bots">&minus;</button><b id="botN">5</b><button id="botPlus" aria-label="More bots">+</button></div>
     </div>
+    <div id="mmMsg" class="mm">Online 10 v 10. Bots fill any empty seats.</div>
   </div>
 </div>
 
@@ -169,7 +182,7 @@ h3{margin:0 0 8px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;c
   <div id="hurt"></div>
   <div id="board"></div>
   <div id="top"></div>
-  <div id="stats"><span>FPS <b id="fps">0</b></span><span>PING <b id="ping">-</b></span></div>
+  <div id="stats"><span>FPS <b id="fps">0</b></span><span>PING <b id="ping">-</b></span><span>PLAYERS <b id="humans">1</b></span></div>
   <div id="feed"></div>
   <div id="cross"><i></i><i></i><i></i><i></i></div>
   <div id="hitm"></div>
@@ -185,7 +198,7 @@ h3{margin:0 0 8px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;c
 <div id="pause" hidden>
   <div class="card pcard">
     <div><button id="resumeBtn" class="btn big">&#9654; PLAY</button><div id="lockHint" class="hint">Click Play to grab the mouse. Esc brings this menu back.</div></div>
-    <h3>Room code</h3>
+    <h3 id="roomLabel">Room code</h3>
     <div class="roomRow"><span id="roomCode">...</span><button id="copyBtn" class="btn ghost">Copy</button></div>
     <div id="roomHint" class="hint" style="margin-top:0"></div>
     <h3>Weapon</h3>
@@ -233,7 +246,7 @@ const SHELLS = [0xf4e3c8, 0xc98a5a, 0xf8f8f3, 0xff8fb1, 0x8fd6ff, 0xa6e36b, 0xff
 const TEAM_COL = [0xff5a4d, 0x38a3ff], TEAM_CSS = ['#ff8d84', '#7cc3ff'], TEAM_NAME = ['RED', 'BLUE'];
 const EGG = { eye: 1.2, cy: .78, rx: .52, ry: .74 };
 const HW = .4, PH = 1.5, EPS = 1e-4, STEP = .5, GRAV = 22, JUMP = 7.9, SPEED = 6.2, ROCKET_SPEED = 38, BLAST = 5.5;
-const PREFIX = 'scrambled-egg-v1-', MAX_HUMANS = 10;
+const PREFIX = 'scrambled-egg-v1-', LOBBY_PREFIX = 'scrambled-egg-v2-lobby-', TEAM_MAX = 10, MAX_HUMANS = TEAM_MAX * 2, LOBBY_MAX = 30, PUB_LIMIT = 50;
 
 const prefs = Object.assign({ name: '', color: 0, hat: 0, weapon: 0, sens: 1, mode: 'ffa', bots: 5 },
   (() => { try { return JSON.parse(localStorage.getItem('scrambled-prefs')) || {}; } catch (e) { return {}; } })());
@@ -241,7 +254,7 @@ const savePrefs = () => { try { localStorage.setItem('scrambled-prefs', JSON.str
 prefs.name = prefs.name ? cleanName(prefs.name) : randomName();
 prefs.color = clamp(prefs.color | 0, 0, SHELLS.length - 1);
 prefs.weapon = clamp(prefs.weapon | 0, 0, WEAPONS.length - 1);
-prefs.bots = clamp(prefs.bots | 0, 0, 9);
+prefs.bots = clamp(prefs.bots | 0, 0, MAX_HUMANS - 1);
 prefs.hat = clamp(prefs.hat | 0, 0, 9);
 prefs.sens = clamp(num(prefs.sens) || 1, .3, 3);
 if (prefs.mode !== 'teams') prefs.mode = 'ffa';
@@ -1216,7 +1229,7 @@ function sfx(name, at) {
 }
 
 // ---------- state
-const S = { screen: 'menu', mode: 'ffa', isHost: false, myId: null, code: '', invite: '', online: false, players: {}, teamScore: [0, 0], limit: 20, locked: false, chatOpen: false, nextId: 0, resetAt: 0, lastTick: 0, ping: 0, slots: 1 };
+const S = { screen: 'menu', mode: 'ffa', isHost: false, myId: null, code: '', pub: 0, invite: '', online: false, players: {}, teamScore: [0, 0], limit: 20, locked: false, chatOpen: false, nextId: 0, resetAt: 0, lastTick: 0, ping: 0, slots: 1 };
 const L = { yaw: 0, pitch: 0, recoil: 0, aim: 0, mag: 0, res: 0, reloadUntil: 0, reloadFrom: 0, equipUntil: 0, nextShot: 0, bloom: 0, vmKick: 0, flash: 0, bob: 0, rid: 0, nextSend: 0, nextPing: 0, deadAt: 0, deadPos: new V3(), firing: false, aiming: false };
 const phys = { pos: new V3(), vel: new V3(), onGround: false, coy: 0 };
 const keys = {};
@@ -1274,16 +1287,26 @@ function castRay(o, d, max, shooter, auth) {
 
 // ---------- networking: one player hosts, everyone else connects to them over WebRTC
 const Net = {
-  peer: null, conn: null, conns: {},
+  peer: null, conn: null, conns: {}, gen: 0,
   toHost(m) { if (S.isHost) hostHandle(m, S.myId); else if (this.conn && this.conn.open) this.conn.send(m); },
   broadcast(m, except) { for (const id in this.conns) { if (id !== except && this.conns[id].open) this.conns[id].send(m); } },
   all(m) { this.broadcast(m); clientHandle(m); },
-  close() { const p = this.peer; this.peer = null; this.conn = null; this.conns = {}; if (p) { try { p.destroy(); } catch (e) { /* already gone */ } } },
+  close() { this.gen++; const p = this.peer; this.peer = null; this.conn = null; this.conns = {}; if (p) { try { p.destroy(); } catch (e) { /* already gone */ } } },
 };
+// run f later unless the connection was torn down or replaced in the meantime
+const later = (f, ms) => { const g = Net.gen; setTimeout(() => { if (Net.gen === g) f(); }, ms); };
 
 // ---------- host side: owns health, scores, spawns and bots
 const teamCount = t => { let n = 0; for (const id in S.players) if (S.players[id].team === t) n++; return n; };
 const smallerTeam = () => teamCount(0) <= teamCount(1) ? 0 : 1;
+const humanCount = t => { let n = 0; for (const id in S.players) { const p = S.players[id]; if (!p.isBot && (t === undefined || p.team === t)) n++; } return n; };
+function seatFor(want) {   // the team a newly joined human plays on: their old one if it has room, else the one with fewer humans
+  if (S.mode !== 'teams') return -1;
+  if ((want === 0 || want === 1) && humanCount(want) < TEAM_MAX) return want;
+  const h0 = humanCount(0), h1 = humanCount(1);
+  if (h0 !== h1) return h0 < h1 ? 0 : 1;
+  return teamCount(0) !== teamCount(1) ? smallerTeam() : (Math.random() * 2) | 0;
+}
 function hostRoster() {
   const list = [];
   for (const id in S.players) { const p = S.players[id]; list.push({ id: p.id, name: p.name, color: p.color, team: p.team, bot: p.isBot, hat: p.hat, kills: p.kills, deaths: p.deaths, streak: p.streak, weapon: p.weapon }); }
@@ -1297,8 +1320,13 @@ function hostSpawn(p) {
     return { s, d: Math.min(d, 60) + Math.random() * 8 };
   }).sort((a, b) => b.d - a.d);
   const s = scored[(Math.random() * Math.min(3, scored.length)) | 0].s;
+  let x = s[0], z = s[1];
+  for (let i = 0; i < 8; i++) {   // spread out a little so a full team does not stack on one spot
+    const jx = s[0] + rand(-1.8, 1.8), jz = s[1] + rand(-1.8, 1.8);
+    if (Math.abs(jx) < AX - 1 && Math.abs(jz) < AZ - 1 && !blocked(jx, EPS, jz)) { x = r2(jx); z = r2(jz); break; }
+  }
   p.hp = 100; p.lastHurt = -99; p.spawnAt = nowS(); p.respawnAt = 0;
-  Net.all({ t: 'spawn', id: p.id, p: [s[0], 0, s[1]], yaw: r2(Math.atan2(s[0], s[1])) });
+  Net.all({ t: 'spawn', id: p.id, p: [x, 0, z], yaw: r2(Math.atan2(x, z)) });
 }
 function hostDamage(targetId, byId, dmg, w) {
   const t = S.players[targetId], k = S.players[byId], now = nowS();
@@ -1326,17 +1354,16 @@ function hostAddBot(team) {
   return p;
 }
 function hostAddHuman(id, m, conn) {
-  if (Object.keys(S.players).length >= S.slots) {   // a human takes a bot's seat
-    const bots = Object.values(S.players).filter(p => p.isBot);
-    if (bots.length) {
-      const big = teamCount(0) >= teamCount(1) ? 0 : 1;
-      removePlayer((S.mode === 'teams' && bots.find(b => b.team === big) || bots[0]).id);
-    }
+  let team = seatFor(m.team), took = null;
+  if (Object.keys(S.players).length >= S.slots) {   // the room is full, so a bot gets kicked and the human takes its seat
+    const bots = Object.values(S.players).filter(p => p.isBot), mine = bots.filter(b => b.team === team);
+    took = mine.find(b => !b.alive) || mine[0] || bots.find(b => !b.alive) || bots[0] || null;   // rather one that is not mid-fight
+    if (took) { removePlayer(took.id); if (S.mode === 'teams') team = took.team; }
   }
   Net.conns[id] = conn;
-  const p = addPlayer({ id, name: m.name, color: m.color, team: S.mode === 'teams' ? smallerTeam() : -1, weapon: m.weapon, hat: m.hat });
+  const p = addPlayer({ id, name: m.name, color: m.color, team, weapon: m.weapon, hat: m.hat, kills: clamp(m.kills | 0, 0, 999), deaths: clamp(m.deaths | 0, 0, 999) });
   conn.send({ t: 'welcome', id, mode: S.mode, limit: S.limit });
-  hostRoster(); Net.all({ t: 'sys', m: p.name + ' joined' });
+  hostRoster(); Net.all({ t: 'sys', m: p.name + (took ? ' joined and took over from ' + took.name : ' joined') });
   p.respawnAt = nowS() + .4;
 }
 function hostRemoveHuman(id) {
@@ -1352,7 +1379,7 @@ function onHostConn(conn) {
     if (!m || typeof m !== 'object' || !S.isHost || S.screen !== 'game') return;
     if (m.t === 'hello') {
       if (conn._pid) return;
-      if (Object.keys(Net.conns).length + 1 >= MAX_HUMANS) { conn.send({ t: 'full' }); return; }
+      if (humanCount() >= MAX_HUMANS) { conn.send({ t: 'full' }); return; }
       conn._pid = 'p' + (++S.nextId); hostAddHuman(conn._pid, m, conn);
     } else if (conn._pid) hostHandle(m, conn._pid, conn);
   });
@@ -1480,7 +1507,9 @@ function renderBoard() {
     const r = document.createElement('div'), n = document.createElement('span'), k = document.createElement('b');
     r.className = 'row' + (p.isLocal ? ' me' : '') + (p.team >= 0 ? ' t' + p.team : '');
     n.textContent = p.name; k.textContent = p.kills; r.append(n, k); el.append(r);
+    if (p.isBot) { const i = document.createElement('i'); i.textContent = 'BOT'; n.append(i); }
   };
+  el.classList.toggle('many', list.length > 12);
   if (S.mode === 'teams') {
     const mine = me && me.team >= 0 ? me.team : 0;
     for (const t of [mine, 1 - mine]) list.filter(p => p.team === t).forEach(add);
@@ -1534,7 +1563,7 @@ function hudFrame(now) {
   cr.style.display = me.alive && !scoped ? '' : 'none';
   cr.style.setProperty('--g', (4 + curSpread(w) * 520).toFixed(1) + 'px');
   fpsN++;
-  if (now - fpsT >= .5) { setText('fps', Math.round(fpsN / (now - fpsT))); fpsN = 0; fpsT = now; setText('ping', S.isHost ? 'host' : S.ping + 'ms'); }
+  if (now - fpsT >= .5) { setText('fps', Math.round(fpsN / (now - fpsT))); fpsN = 0; fpsT = now; setText('ping', S.isHost ? 'host' : S.ping + 'ms'); setText('humans', humanCount()); }
   if (!me.alive && L.deadAt) setText('deadT', 'Back in ' + Math.max(0, Math.ceil(3 - (now - L.deadAt))) + '...');
 }
 
@@ -1687,7 +1716,8 @@ function clientHandle(m) {
 }
 
 // ---------- starting, joining and leaving games
-const RELAY_URL = /^https?:$/.test(location.protocol) ? (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws' : null;
+// (GitHub Pages only serves files, so there is never a relay server behind it)
+const RELAY_URL = /^https?:$/.test(location.protocol) && !/\.github\.io$/i.test(location.hostname) ? (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws' : null;
 const JOIN_HELP = $('joinMsg').textContent;
 const joinMsg = t => { $('joinMsg').textContent = t; };
 function genCode() { const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s = ''; for (let i = 0; i < 5; i++) s += A[(Math.random() * A.length) | 0]; return s; }
@@ -1700,7 +1730,9 @@ function roomUI(state) {
   }
   else if (state === 'connecting') { code.textContent = '...'; hint.textContent = 'Opening your room...'; }
   else if (state === 'client') { code.textContent = S.code; hint.textContent = "You are in a friend's room."; }
-  else { code.textContent = 'offline'; hint.textContent = 'Could not reach the matchmaking service, so friends cannot join right now. Bots still work.'; }
+  else if (state === 'public') { code.textContent = 'LOBBY ' + S.pub; hint.textContent = 'Public 10 v 10 match. Bots hold the empty seats and hand them over when real players join. Friends who press Play land here while there is room.'; }
+  else { code.textContent = 'offline'; hint.textContent = 'Could not reach the matchmaking service, so nobody else can join right now. Bots still work.'; }
+  $('roomLabel').textContent = state === 'public' ? 'Public match' : 'Room code';
   $('copyBtn').hidden = state !== 'open' && state !== 'client';
 }
 function markWeapon() {
@@ -1718,20 +1750,124 @@ function enterGame() {
   S.screen = 'game'; S.ping = 0; S.resetAt = 0; S.lastTick = nowS(); S.chatOpen = false;
   Object.assign(L, { yaw: 0, pitch: 0, recoil: 0, aim: 0, reloadUntil: 0, equipUntil: 0, nextShot: 0, bloom: 0, vmKick: 0, deadAt: 0, firing: false, aiming: false });
   for (const k in keys) keys[k] = false;
-  $('menu').hidden = true; $('hud').hidden = false; $('pause').hidden = false; $('dead').hidden = true; $('banner').hidden = true;
+  $('menu').hidden = true; $('hud').hidden = false; $('pause').hidden = S.locked; $('dead').hidden = true; $('banner').hidden = true;
   $('feed').textContent = ''; $('chatLog').textContent = ''; $('board').textContent = '';
   vmSetWeapon(prefs.weapon); vmCuff.color.setHex(SHOES[prefs.color]); resetAmmo(); markWeapon();
   camera.fov = 78; camera.updateProjectionMatrix(); camera.position.set(0, 18, 34); camera.lookAt(0, 0, 0);
 }
 function toMenu(msg) {
-  Net.close();
+  Net.close(); mmIdle();
   for (const id in S.players) removePlayer(id);
   clearFx();
-  S.screen = 'menu'; S.isHost = false; S.myId = null; S.online = false; S.chatOpen = false;
+  S.screen = 'menu'; S.isHost = false; S.myId = null; S.online = false; S.chatOpen = false; S.pub = 0;
   $('menu').hidden = false; $('hud').hidden = true; $('pause').hidden = true;
   if (document.pointerLockElement) document.exitPointerLock();
   joinMsg(msg || JOIN_HELP);
 }
+
+// ---------- public lobbies: PLAY puts you in the first 10 v 10 lobby with a free seat
+// GitHub Pages only serves files, so there is no game server. Every lobby has a fixed
+// PeerJS id and whoever claims it first hosts the match in their own browser; everyone
+// after that connects to them. If the host leaves, the others race to claim the id again,
+// so the lobby carries on under a new host and everyone keeps their team and score.
+const lobbyId = n => LOBBY_PREFIX + n;
+const MM_HELP = $('mmMsg').textContent;
+const MM = { n: 1, tries: 0, carry: null, searching: false };
+const mmStatus = t => { $('mmMsg').textContent = t; };
+function mmIdle() { MM.searching = false; MM.carry = null; $('playBtn').textContent = '▶ PLAY'; mmStatus(MM_HELP); }
+function quickMatch(n, carry) {
+  audioInit(); Net.close();
+  Object.assign(MM, { n, tries: 0, carry });
+  if (!window.Peer) { playOffline(); return; }
+  if (S.screen === 'menu') { MM.searching = true; $('playBtn').textContent = '✕ CANCEL'; }
+  claimLobby();
+}
+function claimLobby() {   // try to become lobby n's host; if somebody already is, join them instead
+  const n = MM.n; let peer, hosting = false;
+  mmStatus('Looking for a match...');
+  try { peer = new window.Peer(lobbyId(n)); } catch (e) { playOffline(); return; }
+  Net.peer = peer;
+  const timer = setTimeout(() => { if (Net.peer === peer && !hosting) playOffline(); }, 12000);
+  peer.on('open', () => { if (Net.peer !== peer) return; clearTimeout(timer); hosting = true; hostLobby(n); });
+  peer.on('connection', conn => { if (Net.peer === peer && hosting) onHostConn(conn); });
+  peer.on('disconnected', () => { setTimeout(() => { if (Net.peer === peer && hosting && !peer.destroyed) { try { peer.reconnect(); } catch (e) { /* retried on the next drop */ } } }, 3000); });
+  peer.on('error', err => {
+    if (Net.peer !== peer || hosting) return;
+    clearTimeout(timer); Net.peer = null; try { peer.destroy(); } catch (e) { /* already gone */ }
+    if (err && err.type === 'unavailable-id') joinLobby(n); else playOffline();
+  });
+}
+function joinLobby(n) {
+  mmStatus('Joining lobby ' + n + '...');
+  let peer, joined = false;
+  try { peer = new window.Peer(); } catch (e) { playOffline(); return; }
+  Net.peer = peer;
+  const retry = full => { clearTimeout(timer); if (Net.peer !== peer || joined) return; Net.close(); nextLobby(full); };
+  const timer = setTimeout(() => retry(false), 15000);
+  peer.on('open', () => {
+    if (Net.peer !== peer) return;
+    const conn = Net.conn = peer.connect(lobbyId(n), { reliable: true, serialization: 'json' });
+    conn.on('open', () => conn.send(helloMsg()));
+    conn.on('data', m => {
+      if (Net.peer !== peer || !m || typeof m !== 'object') return;
+      if (m.t === 'welcome') { clearTimeout(timer); joined = true; joinedGame(m, { pub: n }); }
+      else if (m.t === 'full') retry(true);
+      else if (joined) clientHandle(m);
+    });
+    const lost = () => { if (Net.peer !== peer) return; if (joined) hostLost(n); else retry(false); };
+    conn.on('close', lost);
+    conn.on('error', () => { if (!conn.open) lost(); });
+  });
+  peer.on('error', () => { if (!joined) retry(false); });   // e.g. the host vanished just before we got there
+}
+function nextLobby(full) {
+  if (!full && ++MM.tries < 3) { later(claimLobby, 300 + Math.random() * 900); return; }   // its host may have just left: try to take over
+  MM.tries = 0;
+  if (++MM.n > LOBBY_MAX) playOffline(); else claimLobby();
+}
+function hostLobby(n) {
+  startHost({ mode: 'teams', slots: MAX_HUMANS, limit: PUB_LIMIT, pub: n, carry: MM.carry });
+  S.online = true; roomUI('public');
+  if (MM.carry) chatLine(null, 'You are now hosting lobby ' + n + '.');
+  mmIdle();
+}
+function hostLost(n) {   // our host left: keep your team and score and help pick a new host
+  const me = meP(), carry = me ? { team: me.team, kills: me.kills, deaths: me.deaths, ts: S.teamScore.slice() } : {};
+  Net.close(); S.online = false;
+  banner('Host left, switching to a new one...');
+  later(() => quickMatch(n, carry), 300 + Math.random() * 1500);
+}
+function playOffline() {   // no matchmaking service to be found: a local 10 v 10 against bots
+  const carry = MM.carry;
+  Net.close();
+  startHost({ mode: 'teams', slots: MAX_HUMANS, limit: PUB_LIMIT, carry });
+  roomUI('offline'); mmIdle();
+  chatLine(null, 'Could not reach the online service, so this match is just you and bots.');
+}
+function startHost(o) {
+  audioInit();
+  const teams = o.mode === 'teams', c = o.carry || {};
+  Object.assign(S, { isHost: true, myId: 'h', mode: o.mode, limit: o.limit, teamScore: Array.isArray(c.ts) ? [c.ts[0] | 0, c.ts[1] | 0] : [0, 0], nextId: 0, slots: o.slots, pub: o.pub || 0 });
+  enterGame();
+  addPlayer({ id: 'h', name: prefs.name, color: prefs.color, team: teams ? (c.team === 0 || c.team === 1 ? c.team : (Math.random() * 2) | 0) : -1, weapon: prefs.weapon, hat: prefs.hat, kills: c.kills, deaths: c.deaths });
+  while (Object.keys(S.players).length < S.slots) hostAddBot(teams ? smallerTeam() : -1);
+  hostRoster();
+  for (const id in S.players) hostSpawn(S.players[id]);
+  if (!S.locked) lockPointer();
+}
+function startPrivate() {
+  Net.close(); mmIdle();
+  startHost({ mode: prefs.mode, slots: 1 + prefs.bots, limit: prefs.mode === 'teams' ? 40 : 20 });
+  openRoom();
+}
+function joinedGame(m, info) {
+  Object.assign(S, { isHost: false, myId: String(m.id), mode: m.mode === 'teams' ? 'teams' : 'ffa', limit: clamp(m.limit | 0, 1, 999), teamScore: [0, 0], code: info.code || '', pub: info.pub || 0 });
+  enterGame(); roomUI(S.pub ? 'public' : 'client');
+  mmIdle();
+  if (!S.locked) lockPointer();
+}
+
+// ---------- private rooms: a room code you hand to friends
 // Rooms try the bundled relay server first (when the page came from server.js) and
 // fall back to serverless WebRTC through the public PeerJS service.
 function openRoom() {
@@ -1787,21 +1923,10 @@ function openPeerRoom() {
     else if (!S.online) roomUI('offline');
   });
 }
-function startHost() {
-  audioInit(); Net.close();
-  const teams = prefs.mode === 'teams';
-  Object.assign(S, { isHost: true, myId: 'h', mode: prefs.mode, limit: teams ? 40 : 20, teamScore: [0, 0], nextId: 0, slots: 1 + prefs.bots });
-  enterGame();
-  addPlayer({ id: 'h', name: prefs.name, color: prefs.color, team: teams ? (Math.random() * 2) | 0 : -1, weapon: prefs.weapon, hat: prefs.hat });
-  for (let i = 0; i < prefs.bots; i++) hostAddBot(teams ? smallerTeam() : -1);
-  hostRoster();
-  for (const id in S.players) hostSpawn(S.players[id]);
-  openRoom(); lockPointer();
-}
 function joinRoom(raw) {
   const code = String(raw).trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
   if (code.length < 4) { joinMsg('Type the room code your friend gave you.'); return; }
-  audioInit(); Net.close(); joinMsg('Connecting...');
+  audioInit(); Net.close(); mmIdle(); joinMsg('Connecting...');
   if (RELAY_URL) joinRelay(code); else joinPeer(code, false);
 }
 function joinFail(token, msg) {
@@ -1810,13 +1935,12 @@ function joinFail(token, msg) {
 }
 function onJoinData(token, m, code) {
   if (Net.peer !== token || !m || typeof m !== 'object') return;
-  if (m.t === 'welcome') {
-    Object.assign(S, { isHost: false, myId: String(m.id), mode: m.mode === 'teams' ? 'teams' : 'ffa', limit: clamp(m.limit | 0, 1, 999), teamScore: [0, 0], code });
-    enterGame(); roomUI('client');
-  } else if (m.t === 'full') joinFail(token, 'That room is full.');
+  if (m.t === 'welcome') joinedGame(m, { code });
+  else if (m.t === 'full') joinFail(token, 'That room is full.');
   else clientHandle(m);
 }
-const helloMsg = () => ({ t: 'hello', name: prefs.name, color: prefs.color, hat: prefs.hat, weapon: prefs.weapon });
+// after a host change, the carried team and score let you pick up where you left off
+const helloMsg = () => { const c = MM.carry || {}; return { t: 'hello', name: prefs.name, color: prefs.color, hat: prefs.hat, weapon: prefs.weapon, team: c.team, kills: c.kills, deaths: c.deaths }; };
 function joinRelay(code) {
   let ws, opened = false;
   try { ws = new WebSocket(RELAY_URL + '?role=join&room=' + code); } catch (e) { joinPeer(code, false); return; }
@@ -1927,12 +2051,16 @@ HAT_NAMES.forEach((n, i) => {
 });
 const markMode = () => document.querySelectorAll('#modeSeg button').forEach(b => b.classList.toggle('on', b.dataset.m === prefs.mode));
 document.querySelectorAll('#modeSeg button').forEach(b => b.addEventListener('click', () => { prefs.mode = b.dataset.m; savePrefs(); markMode(); }));
-const setBots = n => { prefs.bots = clamp(n, 0, 9); savePrefs(); $('botN').textContent = prefs.bots; };
+const setBots = n => { prefs.bots = clamp(n, 0, MAX_HUMANS - 1); savePrefs(); $('botN').textContent = prefs.bots; };
 $('botMinus').addEventListener('click', () => setBots(prefs.bots - 1));
 $('botPlus').addEventListener('click', () => setBots(prefs.bots + 1));
 $('nameIn').value = prefs.name;
 $('nameIn').addEventListener('change', e => { prefs.name = cleanName(e.target.value); e.target.value = prefs.name; savePrefs(); });
-$('playBtn').addEventListener('click', () => { prefs.name = cleanName($('nameIn').value); savePrefs(); startHost(); });
+$('playBtn').addEventListener('click', () => {
+  prefs.name = cleanName($('nameIn').value); savePrefs();
+  if (MM.searching) { Net.close(); mmIdle(); } else quickMatch(1, null);
+});
+$('createBtn').addEventListener('click', () => { prefs.name = cleanName($('nameIn').value); savePrefs(); startPrivate(); });
 $('joinBtn').addEventListener('click', () => { prefs.name = cleanName($('nameIn').value); savePrefs(); joinRoom($('codeIn').value); });
 $('codeIn').addEventListener('keydown', e => { if (e.code === 'Enter') $('joinBtn').click(); });
 $('resumeBtn').addEventListener('click', lockPointer);
@@ -1995,6 +2123,7 @@ function updateGame(dt, now) {
     p.spd = (p.spd || 0) + (sp - (p.spd || 0)) * Math.min(1, dt * 10); p.air = dt > 0 && Math.abs(p.pos.y - oy) / dt > 1.2;
     p.yaw += angDiff(p.tyaw, p.yaw) * k; p.pitch += (p.tpitch - p.pitch) * k;
     R.visible = true; R.position.copy(p.pos); R.rotation.y = p.yaw; p.model.update(dt, now, p.spd, p.pitch, p.air, p.hp);
+    p.model.arm.visible = p.pos.distanceTo(camera.position) * camera.fov / 78 < 40;   // guns are tiny that far away; skip drawing them with 20 eggs about
     p.model.flash.visible = now < p.flash; if (p.model.flash.visible) p.model.flash.rotation.z = now * 40;
   }
   updateRockets(dt); updateFx(dt);
@@ -2034,7 +2163,7 @@ requestAnimationFrame(frame);
   } catch (e) { setInterval(hostTick, 50); }
 })();
 window.addEventListener('beforeunload', () => Net.close());
-window.SCR = { S, L, phys, Net, keys, startHost, joinRoom, hostTick, updateGame, rockets, decals };   // handy from the dev console
+window.SCR = { S, L, MM, phys, Net, keys, startHost, startPrivate, quickMatch, joinRoom, hostTick, updateGame, rockets, decals };   // handy from the dev console
 })();
 </script>
 </body>
